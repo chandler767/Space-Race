@@ -3,52 +3,69 @@ package main
 import (
 	"fmt"
 	"os"
+	"bufio"
+	"strings"
 
-	"github.com/gosuri/uiprogress"
-	term "github.com/nsf/termbox-go"
+//	"github.com/gosuri/uiprogress"
+//	term "github.com/nsf/termbox-go"
 )
 
-func main() {
-	err := term.Init()
+func newGame(channel string, username string) {
+	reader := bufio.NewReader(os.Stdin)
+	var (
+		err error
+		newChannel string
+		newUsername string 
+	)
+	
+	if (channel == "") { // Ask for channel name.
+		fmt.Print("Enter Channel Name: ")
+	} else {
+		fmt.Print("Enter Channel Name ("+channel+"): ")
+	}
+	newChannel, err = reader.ReadString('\n')
 	if err != nil {
 		panic(err)
 	}
-
-	defer term.Close()
-
-	fmt.Println("Press SPACE to race!")
-	uiprogress.Start()
-
-	bar1 := uiprogress.AddBar(100).AppendCompleted().PrependElapsed()
-	bar1.PrependFunc(func(b *uiprogress.Bar) string {
-		return "Host: "
-	})
-
-	bar2 := uiprogress.AddBar(100).AppendCompleted().PrependElapsed()
-	bar2.PrependFunc(func(b *uiprogress.Bar) string {
-		return "Guest: "
-	})
-
-	fmt.Println("game:")
-
-keyPressListenerLoop:
-	for {
-		event := term.PollEvent()
-		switch {
-		case event.Key == term.KeyEsc:
-			term.Close()
-			break keyPressListenerLoop
-		case event.Key == term.KeySpace:
-			bar2.Incr()
-		case event.Key == term.KeyEnter:
-			bar1.Incr()
-		}
+	newChannel = strings.Replace(newChannel, "\n", "", -1) // Convert CRLF to LF.
+	if newChannel != "" { // Use last channel name when the user does not provide a channel. 
+		channel = newChannel
 	}
-	uiprogress.Stop()
 
-	fmt.Println("Thanks for playing!")
+	if (username == "") { // Ask for username.
+		fmt.Print("Enter Username: ")
+	} else {
+		fmt.Print("Enter Username ("+username+"): ")
+	}
+	newUsername, err = reader.ReadString('\n')
+	if err != nil {
+		panic(err)
+	}
+	newUsername = strings.Replace(newUsername, "\n", "", -1) // Convert CRLF to LF.
+	if newUsername != "" {  // Use last username when the user does not provide a username. 
+		username = newUsername
+	}
 
-	fmt.Println("New game?")
+	if ((channel == "") || (username == "")) { // The user must have a channel and username.
+		fmt.Println("You Must Provide a Channel and Username! ")
+		newGame(channel, username) // Start over.
+		return
+	}
+
+
+
+}
+
+func main() {
+
+	var (
+		channel string
+		username string
+	)
+
+	fmt.Println("Welcome to Space Race!")
+	
+	newGame(channel, username)
 
 	os.Exit(0)
 }
