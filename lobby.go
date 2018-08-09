@@ -9,15 +9,25 @@ import (
 	pubnub "github.com/pubnub/go"
 )
 
+func hereNow(channel string, pn *pubnub.PubNub) int { // Return count of occupants for a channel.
+	res, _, err := pn.HereNow().
+		Channels([]string{channel}).
+		Execute()
+	if err != nil {
+		panic(err)
+	}
+	return res.TotalOccupancy
+}
+
 func newLobby(lobby string, username string, pn *pubnub.PubNub) {
 	var (
 		guestName string
 		hostName  string
 		isHost    bool
 	)
+	data := make(map[string]interface{})
 	lobby, username = userInput(lobby, username)
 	lobbylistener := pubnub.NewListener()
-	data := make(map[string]interface{})
 	endLobby := make(chan bool)
 	endGame := make(chan bool)
 	go func() {
@@ -34,7 +44,7 @@ func newLobby(lobby string, username string, pn *pubnub.PubNub) {
 							Channels([]string{lobby + "_lobby"}).
 							Execute()
 						endLobby <- true
-						newLobby(lobby, username, pn) // Start over if the lobby is full or if the game is in progress.
+						newLobby(lobby, username, pn) // Start over if the game is in progress.
 						return
 					}
 					occupants = hereNow(lobby+"_lobby", pn)
@@ -51,7 +61,7 @@ func newLobby(lobby string, username string, pn *pubnub.PubNub) {
 					} else {
 						fmt.Println("Game lobby is full! Please try another lobby.")
 						endLobby <- true
-						newLobby(lobby, username, pn) // Start over if the lobby is full or if the game is in progress.
+						newLobby(lobby, username, pn) // Start over if the lobby is full.
 						return
 					}
 				}
@@ -60,9 +70,8 @@ func newLobby(lobby string, username string, pn *pubnub.PubNub) {
 					if !isHost {
 						if val, ok := msg["hostName"]; ok { // When the guest receives the host username then the game is ready to start.
 							hostName = val.(string)
-							fmt.Println(val.(string))
 							endLobby <- true
-							startGame(isHost, strings.Title(hostName), strings.Title(guestName), pn)
+							startGame(isHost, lobby, strings.Title(hostName), strings.Title(guestName), pn)
 							endGame <- true
 							return
 						}
@@ -70,14 +79,13 @@ func newLobby(lobby string, username string, pn *pubnub.PubNub) {
 						if val, ok := msg["guestName"]; ok { // The host receives the guest username then the host sends the host username and starts a game.
 							guestName = val.(string)
 							data["hostName"] = username
-							fmt.Println("GUEST:" + username)
 							hostName = username
 							pn.Publish().
 								Channel(lobby + "_lobby").
 								Message(data).
 								Execute()
 							endLobby <- true
-							startGame(isHost, strings.Title(hostName), strings.Title(guestName), pn)
+							startGame(isHost, lobby, strings.Title(hostName), strings.Title(guestName), pn)
 							endGame <- true
 							return
 						}
@@ -96,16 +104,6 @@ func newLobby(lobby string, username string, pn *pubnub.PubNub) {
 		Channels([]string{lobby + "_lobby"}).
 		Execute()
 	<-endGame
-}
-
-func hereNow(channel string, pn *pubnub.PubNub) int { // Return count of occupants for a channel.
-	res, _, err := pn.HereNow().
-		Channels([]string{channel}).
-		Execute()
-	if err != nil {
-		panic(err)
-	}
-	return res.TotalOccupancy
 }
 
 func userInput(lobby string, username string) (string, string) {
