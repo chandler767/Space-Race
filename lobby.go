@@ -9,91 +9,129 @@ import (
 	pubnub "github.com/pubnub/go"
 )
 
-func newLobby(channel string, username string, pn *pubnub.PubNub) {
+func newLobby(lobby string, username string, pn *pubnub.PubNub) {
 	var (
-		guestUsername string
-		hostUsername  string
+		guestName string
+		hostName  string
+		isHost    bool
 	)
-	channel, username = userInput(channel, username)
+	lobby, username = userInput(lobby, username)
 	lobbylistener := pubnub.NewListener()
 	data := make(map[string]interface{})
+	endLobby := make(chan bool)
+	endGame := make(chan bool)
 	go func() {
 		for {
 			select {
 			case status := <-lobbylistener.Status:
 				switch status.Category {
 				case pubnub.PNConnectedCategory:
-					res, _, err := pn.HereNow(). // Check if there is already a host in the game.
-									Channels([]string{channel}).
-									Execute()
-					if err != nil {
-						panic(err)
+					occupants := hereNow(lobby, pn)
+					if occupants > 0 {
+						fmt.Println("Game already in progress! Please try another lobby.")
+						pn.RemoveListener(lobbylistener)
+						pn.Unsubscribe().
+							Channels([]string{lobby + "_lobby"}).
+							Execute()
+						endLobby <- true
+						newLobby(lobby, username, pn) // Start over if the lobby is full or if the game is in progress.
+						return
 					}
-					if res.Channels[0].Occupancy != 0 { // Player will be guest. Send username to host.
-						data["guestusername"] = username
+					occupants = hereNow(lobby+"_lobby", pn)
+					if occupants == 0 {
+						isHost = true
+						fmt.Println("Waiting for guest...")
+					} else if occupants == 1 { // Player will be guest. Send username to host.
+						data["guestName"] = username
+						guestName = username
 						pn.Publish().
-							Channel(channel).
+							Channel(lobby + "_lobby").
 							Message(data).
 							Execute()
 					} else {
-						fmt.Println("Waiting for guest...")
+						fmt.Println("Game lobby is full! Please try another lobby.")
+						endLobby <- true
+						newLobby(lobby, username, pn) // Start over if the lobby is full or if the game is in progress.
+						return
 					}
-				case pubnub.PNDisconnectedCategory:
-					fmt.Println("Error: Connection to game lobby was lost.")
-					os.Exit(0)
 				}
 			case message := <-lobbylistener.Message:
 				if msg, ok := message.Message.(map[string]interface{}); ok {
-					if val, ok := msg["guestusername"]; ok { // The host receives the guest username then the host sends the host username and starts a game.
-						guestUsername = val.(string)
-						data["hostusername"] = username
-						pn.Publish().
-							Channel(channel).
-							Message(data).
-							Execute()
+					if !isHost {
+						if val, ok := msg["hostName"]; ok { // When the guest receives the host username then the game is ready to start.
+							hostName = val.(string)
+							fmt.Println(val.(string))
+							endLobby <- true
+							startGame(isHost, strings.Title(hostName), strings.Title(guestName), pn)
+							endGame <- true
+							return
+						}
+					} else {
+						if val, ok := msg["guestName"]; ok { // The host receives the guest username then the host sends the host username and starts a game.
+							guestName = val.(string)
+							data["hostName"] = username
+							fmt.Println("GUEST:" + username)
+							hostName = username
+							pn.Publish().
+								Channel(lobby + "_lobby").
+								Message(data).
+								Execute()
+							endLobby <- true
+							startGame(isHost, strings.Title(hostName), strings.Title(guestName), pn)
+							endGame <- true
+							return
+						}
 					}
-					if val, ok := msg["hostusername"]; ok { // When the guest receives the host username then the game is ready to start.
-						hostUsername = val.(string)
-						pn.RemoveListener(lobbylistener)
-						countdown() // Countdown before starting game.
-						startGame(hostUsername, guestUsername, pn)
-						return
-					}
-
 				}
 			}
 		}
 	}()
 	pn.AddListener(lobbylistener)
 	pn.Subscribe().
-		Channels([]string{channel}).
+		Channels([]string{lobby + "_lobby"}).
 		Execute()
+	<-endLobby // Remove the listener and unsubscribe from the channel used to start the game.
+	pn.RemoveListener(lobbylistener)
+	pn.Unsubscribe().
+		Channels([]string{lobby + "_lobby"}).
+		Execute()
+	<-endGame
 }
 
-func userInput(channel string, username string) (string, string) {
+func hereNow(channel string, pn *pubnub.PubNub) int { // Return count of occupants for a channel.
+	res, _, err := pn.HereNow().
+		Channels([]string{channel}).
+		Execute()
+	if err != nil {
+		panic(err)
+	}
+	return res.TotalOccupancy
+}
+
+func userInput(lobby string, username string) (string, string) {
 	var (
-		newChannel  string
+		newlobby    string
 		newUsername string
 		err         error
 	)
 	reader := bufio.NewReader(os.Stdin)
-	if channel == "" { // Ask for channel name.
-		fmt.Print("Enter Channel Name: ")
+	if lobby == "" { // Ask for lobby name.
+		fmt.Print("Enter Lobby Name: ")
 	} else {
-		fmt.Print("Enter Channel Name (" + channel + "): ")
+		fmt.Print("Enter Lobby Name (" + lobby + "): ")
 	}
-	newChannel, err = reader.ReadString('\n')
+	newlobby, err = reader.ReadString('\n')
 	if err != nil {
 		panic(err)
 	}
-	newChannel = strings.Replace(newChannel, "\n", "", -1) // Convert CRLF to LF.
-	if newChannel != "" {                                  // Use last channel name when the player does not provide a channel.
-		channel = newChannel
+	newlobby = strings.Replace(newlobby, "\n", "", -1) // Convert CRLF to LF.
+	if newlobby != "" {                                // Use last lobby name when the player does not provide a lobby.
+		lobby = newlobby
 	}
 	if username == "" { // Ask for username.
-		fmt.Print("Enter Username: ")
+		fmt.Print("Enter Your Name: ")
 	} else {
-		fmt.Print("Enter Username (" + username + "): ")
+		fmt.Print("Enter Your Name (" + username + "): ")
 	}
 	newUsername, err = reader.ReadString('\n')
 	if err != nil {
@@ -103,9 +141,9 @@ func userInput(channel string, username string) (string, string) {
 	if newUsername != "" {                                   // Use last username when the player does not provide a username.
 		username = newUsername
 	}
-	if (channel == "") || (username == "") { // The player must have a channel and username.
-		fmt.Println("You Must Provide a Channel and Username! ")
-		userInput(channel, username) // Start over.
+	if (lobby == "") || (username == "") { // The player must have a lobby and username.
+		fmt.Println("You Must Provide a Lobby and Name! ")
+		userInput(lobby, username) // Start over.
 	}
-	return channel, username
+	return lobby, username
 }
