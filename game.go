@@ -12,8 +12,11 @@ import (
 )
 
 func countdown(hostName string, guestName string) {
+	fmt.Println("")
 	fmt.Println("The game is about to start between " + hostName + " and " + guestName + "!")
-	time.Sleep(500 * time.Millisecond)
+	fmt.Println("Alternate pressing SPACE and the RIGHT ARROW KEY to race!")
+	fmt.Println("")
+	time.Sleep(750 * time.Millisecond)
 	fmt.Print("3... ")
 	time.Sleep(1 * time.Second)
 	fmt.Print("2... ")
@@ -21,6 +24,7 @@ func countdown(hostName string, guestName string) {
 	fmt.Print("1...  ")
 	time.Sleep(1 * time.Second)
 	fmt.Print("Race!!")
+	fmt.Println("")
 	time.Sleep(500 * time.Millisecond)
 }
 
@@ -29,28 +33,21 @@ func startGame(isHost bool, lobby string, hostName string, guestName string, pn 
 		err      error
 		spaced   bool
 		progress int
+		winner   string
 	)
 	data := make(map[string]interface{})
 
 	countdown(hostName, guestName) // Countdown before starting game.
 
-	gamelistener := pubnub.NewListener()
-
-	err = term.Init()
-	if err != nil {
-		panic(err)
-	}
-	defer term.Close()
-
 	uiprogress.Start()
-	hostBar := uiprogress.AddBar(100).AppendCompleted().PrependElapsed()
+	hostBar := uiprogress.AddBar(100).AppendCompleted()
 	hostBar.AppendFunc(func(b *uiprogress.Bar) string {
 		if isHost {
 			return hostName + " (you)"
 		}
 		return hostName + " (host)"
 	})
-	guestBar := uiprogress.AddBar(100).AppendCompleted().PrependElapsed()
+	guestBar := uiprogress.AddBar(100).AppendCompleted()
 	guestBar.AppendFunc(func(b *uiprogress.Bar) string {
 		if !isHost {
 			return guestName + " (you)"
@@ -58,6 +55,7 @@ func startGame(isHost bool, lobby string, hostName string, guestName string, pn 
 		return guestName + " (guest)"
 	})
 
+	gamelistener := pubnub.NewListener()
 	go func() {
 		for {
 			select {
@@ -73,34 +71,34 @@ func startGame(isHost bool, lobby string, hostName string, guestName string, pn 
 			}
 		}
 	}()
-
 	pn.AddListener(gamelistener)
 	pn.Subscribe().
 		Channels([]string{lobby}).
 		Execute()
 
-	fmt.Println("Alternate pressing SPACE and the RIGHT ARROW KEY to race!")
-
+	err = term.Init()
+	if err != nil {
+		panic(err)
+	}
+	defer term.Close()
 keyPressListenerLoop:
 	for {
+		if hostBar.Current() == hostBar.Total { // Check for winner.
+			winner = hostName
+			break keyPressListenerLoop
+		} else if guestBar.Current() == guestBar.Total {
+			winner = guestName
+			break keyPressListenerLoop
+		}
 		event := term.PollEvent()
 		switch {
 		case event.Key == term.KeyEsc:
-			uiprogress.Stop()
-			term.Close()
-			pn.RemoveListener(gamelistener)
-			pn.Unsubscribe().
-				Channels([]string{lobby}).
-				Execute()
-			fmt.Println("")
-			fmt.Println("Thanks for playing!")
-			os.Exit(0)
 			break keyPressListenerLoop
 		case event.Key == term.KeySpace:
 			if !spaced {
 				progress = progress + 1
 				if isHost {
-					if hostBar.Width < hostBar.Total {
+					if hostBar.Current() < hostBar.Total {
 						data["hostProgress"] = progress
 						pn.Publish().
 							Channel(lobby).
@@ -108,7 +106,7 @@ keyPressListenerLoop:
 							Execute()
 					}
 				} else {
-					if guestBar.Width < guestBar.Total {
+					if guestBar.Current() < guestBar.Total {
 						data["guestProgress"] = progress
 						pn.Publish().
 							Channel(lobby).
@@ -118,9 +116,32 @@ keyPressListenerLoop:
 				}
 				spaced = true
 			}
-		case event.Key == term.KeyArrowRight:
+		case event.Key == term.KeyArrowRight: // Prevents the player from using keyrepeat to cheat.
 			spaced = false
 		}
 	}
 
+	uiprogress.Stop()
+	term.Close()
+	fmt.Println("")
+	if winner != "" {
+		fmt.Println(hostName + " won the game!")
+	} else {
+		fmt.Println("You left the game.") // The other player wins if the player leaves the game.
+		if isHost {
+			data["guestProgress"] = guestBar.Total
+		} else {
+			data["hostProgress"] = hostBar.Total
+		}
+		pn.Publish().
+			Channel(lobby).
+			Message(data).
+			Execute()
+	}
+	pn.Unsubscribe().
+		Channels([]string{lobby}).
+		Execute()
+	fmt.Println("")
+	fmt.Println("Thanks for playing!")
+	os.Exit(0)
 }
