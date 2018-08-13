@@ -125,7 +125,7 @@ keyPressListenerLoop:
 	term.Close()
 	fmt.Println("")
 	if winner != "" {
-		fmt.Println(hostName + " won the game!")
+		fmt.Println(winner + " won the game!")
 	} else {
 		fmt.Println("You left the game.") // The other player wins if the player leaves the game.
 		if isHost {

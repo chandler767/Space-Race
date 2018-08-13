@@ -37,8 +37,12 @@ func newLobby(lobby string, username string, pn *pubnub.PubNub) {
 				case pubnub.PNConnectedCategory:
 					game_occupants := hereNow(lobby, pn)
 					lobby_occupants := hereNow(lobby+"_lobby", pn)
-					if game_occupants > 0 || lobby_occupants >= 2 {
+					if game_occupants > 0 || lobby_occupants > 2 {
 						fmt.Println("Game already in progress! Please try another lobby.")
+						fmt.Print("Game: ")
+						fmt.Println(game_occupants)
+						fmt.Print("Lobby: ")
+						fmt.Println(lobby_occupants)
 						pn.RemoveListener(lobbylistener)
 						pn.Unsubscribe().
 							Channels([]string{lobby + "_lobby"}).
