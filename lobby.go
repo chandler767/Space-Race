@@ -29,40 +29,34 @@ func newLobby(lobby string, username string, pn *pubnub.PubNub) {
 	lobby, username = userInput(lobby, username)
 	lobbylistener := pubnub.NewListener()
 	endLobby := make(chan bool)
-	endGame := make(chan bool)
 	go func() {
 		for {
 			select {
 			case status := <-lobbylistener.Status:
 				switch status.Category {
 				case pubnub.PNConnectedCategory:
-					occupants := hereNow(lobby, pn)
-					if occupants > 0 {
+					game_occupants := hereNow(lobby, pn)
+					lobby_occupants := hereNow(lobby+"_lobby", pn)
+					if game_occupants > 0 || lobby_occupants >= 2 {
 						fmt.Println("Game already in progress! Please try another lobby.")
 						pn.RemoveListener(lobbylistener)
 						pn.Unsubscribe().
 							Channels([]string{lobby + "_lobby"}).
 							Execute()
-						endLobby <- true
 						newLobby(lobby, username, pn) // Start over if the game is in progress.
 						return
 					}
-					occupants = hereNow(lobby+"_lobby", pn)
-					if occupants == 0 {
+					if lobby_occupants == 0 {
 						isHost = true
 						fmt.Println("Waiting for guest...")
-					} else if occupants == 1 { // Player will be guest. Send username to host.
+					} else if lobby_occupants == 1 { // Player will be guest. Send username to host.
+						fmt.Println("Waiting for host...")
 						data["guestName"] = username
 						guestName = username
 						pn.Publish().
 							Channel(lobby + "_lobby").
 							Message(data).
 							Execute()
-					} else {
-						fmt.Println("Game lobby is full! Please try another lobby.")
-						endLobby <- true
-						newLobby(lobby, username, pn) // Start over if the lobby is full.
-						return
 					}
 				}
 			case message := <-lobbylistener.Message:
@@ -71,8 +65,6 @@ func newLobby(lobby string, username string, pn *pubnub.PubNub) {
 						if val, ok := msg["hostName"]; ok { // When the guest receives the host username then the game is ready to start.
 							hostName = val.(string)
 							endLobby <- true
-							startGame(isHost, lobby, strings.Title(hostName), strings.Title(guestName), pn)
-							endGame <- true
 							return
 						}
 					} else {
@@ -85,8 +77,6 @@ func newLobby(lobby string, username string, pn *pubnub.PubNub) {
 								Message(data).
 								Execute()
 							endLobby <- true
-							startGame(isHost, lobby, strings.Title(hostName), strings.Title(guestName), pn)
-							endGame <- true
 							return
 						}
 					}
@@ -98,12 +88,12 @@ func newLobby(lobby string, username string, pn *pubnub.PubNub) {
 	pn.Subscribe().
 		Channels([]string{lobby + "_lobby"}).
 		Execute()
-	<-endLobby // Remove the listener and unsubscribe from the channel used to start the game.
+	<-endLobby // Remove the listener and unsubscribe from the channel used for the game lobby.
 	pn.RemoveListener(lobbylistener)
 	pn.Unsubscribe().
 		Channels([]string{lobby + "_lobby"}).
 		Execute()
-	<-endGame
+	startGame(isHost, lobby, strings.Title(hostName), strings.Title(guestName), pn)
 }
 
 func userInput(lobby string, username string) (string, string) {
