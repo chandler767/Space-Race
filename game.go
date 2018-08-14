@@ -123,6 +123,9 @@ keyPressListenerLoop:
 
 	uiprogress.Stop()
 	term.Close()
+	pn.Unsubscribe().
+		Channels([]string{lobby}).
+		Execute()
 	fmt.Println("")
 	if winner != "" {
 		fmt.Println(winner + " won the game!")
@@ -138,9 +141,6 @@ keyPressListenerLoop:
 			Message(data).
 			Execute()
 	}
-	pn.Unsubscribe().
-		Channels([]string{lobby}).
-		Execute()
 	fmt.Println("")
 	fmt.Println("Thanks for playing!")
 	os.Exit(0)
