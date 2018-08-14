@@ -49,7 +49,7 @@ make build
 ./space-race
 ```
 
-[<img alt="Space Race Game" align="center" src="https://raw.githubusercontent.com/chandler767/Space-Race/master/screenshots/race.png" height="100">](https://pubnub.com/?devrel_gh=Space-Race)
+[<img alt="Space Race Game" align="center" src="https://raw.githubusercontent.com/chandler767/Space-Race/master/screenshots/race.png" height="150">](https://pubnub.com/?devrel_gh=Space-Race)
 
 ## How To Play
 
@@ -65,7 +65,7 @@ make build
 
 6. You can leave the game while playing by pressing ESC. If you leave the game then the other player wins automatically. 
 
-[<img alt="Space Race Game" align="center" src="https://raw.githubusercontent.com/chandler767/Space-Race/master/screenshots/game.png" height="100">](https://pubnub.com/?devrel_gh=Space-Race)
+[<img alt="Space Race Game" align="center" src="https://raw.githubusercontent.com/chandler767/Space-Race/master/screenshots/game.png" height="330">](https://pubnub.com/?devrel_gh=Space-Race)
 
 ### Limitations 
 
