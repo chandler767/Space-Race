@@ -24,6 +24,8 @@ The fastest way to get started is to [download and run the appropriate binary fo
 
 - You’ll first need to sign up for a [PubNub account](https://dashboard.pubnub.com/signup/?devrel_gh=Space-Race). Once you sign up, you can get your unique PubNub keys from the [PubNub Developer Portal](https://admin.pubnub.com/?devrel_gh=Space-Race).
 
+- You must [enable the channel presence feature](https://support.pubnub.com/support/solutions/articles/14000043562-how-do-i-enable-the-channel-presence-feature-/?devrel_gh=Space-Race) for your keys. Presence can be enabled per key in your [account dashboard](https://admin.pubnub.com/?devrel_gh=Space-Race).
+
 <a href="https://dashboard.pubnub.com/signup?devrel_gh=Space-Race">
     <img alt="PubNub Signup" src="https://i.imgur.com/og5DDjf.png" width=260 height=97/>
 </a>
@@ -44,9 +46,11 @@ git clone https://github.com/chandler767/Space-Race
 
 4. Get your unique PubNub keys from the [PubNub Developer Portal](https://admin.pubnub.com/?devrel_gh=Space-Race). If you don't have a PubNub account, you can [sign up for a PubNub account](https://dashboard.pubnub.com/signup/?devrel_gh=Space-Race) for free.
 
-5. Open [main.go](https://github.com/chandler767/Space-Race/blob/master/main.go) and replace "pub-key" and "sub-key" with your keys.
+5. [Enable the channel presence feature](https://support.pubnub.com/support/solutions/articles/14000043562-how-do-i-enable-the-channel-presence-feature-/?devrel_gh=Space-Race) for your keys. Presence can be enabled per key in your [account dashboard](https://admin.pubnub.com/?devrel_gh=Space-Race).
 
-6. Build and run the game.
+6. Open [main.go](https://github.com/chandler767/Space-Race/blob/master/main.go) and replace "pub-key" and "sub-key" with your keys.
+
+7. Build and run the game.
 ```bash
 make run
 ```
