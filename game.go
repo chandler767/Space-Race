@@ -30,7 +30,6 @@ func countdown(hostName string, guestName string) {
 
 func startGame(isHost bool, lobby string, hostName string, guestName string, pn *pubnub.PubNub) {
 	var (
-		err      error
 		spaced   bool
 		progress int
 		winner   string
@@ -61,10 +60,10 @@ func startGame(isHost bool, lobby string, hostName string, guestName string, pn 
 			select {
 			case message := <-gamelistener.Message:
 				if msg, ok := message.Message.(map[string]interface{}); ok {
-					if val, ok := msg["guestProgress"]; ok { // The host receives the guest username then the host sends the host username and starts a game.
+					if val, ok := msg["guestProgress"]; ok {
 						guestBar.Set(int(val.(float64)))
 					}
-					if val, ok := msg["hostProgress"]; ok { // When the guest receives the host username then the game is ready to start.
+					if val, ok := msg["hostProgress"]; ok {
 						hostBar.Set(int(val.(float64)))
 					}
 				}
@@ -76,7 +75,7 @@ func startGame(isHost bool, lobby string, hostName string, guestName string, pn 
 		Channels([]string{lobby}).
 		Execute()
 
-	err = term.Init()
+	err := term.Init()
 	if err != nil {
 		panic(err)
 	}
