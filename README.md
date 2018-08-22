@@ -8,7 +8,7 @@ Playing a game alone is not nearly as fun as playing with your friends and that'
 
 The design of online games can range from simple text-based environments to incredibly complex virtual worlds. A few other examples of popular online multiplayer games types include first-person shooters (FPS), real-time strategy games (RTS), and multiplayer online battle arena games (MOBA). 
 
-This project is intended to show how PubNub can be used to create a real-time multiplayer game. [PubNub is perfect for powering multiplayer games](https://pubnub.com/multiplayer-gaming/?devrel_gh=Space-Race) because it makes it easier to build a fast and scalable multiplayer game. In this game PubNub is used to manage the players in the game lobby and to transmit game data. The game is built in Go using the [PubNub Go SDK](https://www.pubnub.com/docs/go/pubnub-go-sdk?devrel_gh=Space-Race) and is cross platform. You can learn more about how this game was built from the blog post (coming soon).
+This project is intended to show how PubNub can be used to create a real-time multiplayer game. [PubNub is perfect for powering multiplayer games](https://pubnub.com/multiplayer-gaming/?devrel_gh=Space-Race) because it makes it easier to build a fast and scalable multiplayer game. In this game PubNub is used to manage the players in the game lobby and to transmit game data. The game is built in Go using the [PubNub Go SDK](https://www.pubnub.com/docs/go/pubnub-go-sdk?devrel_gh=Space-Race) and is cross platform. You can learn more about how this game was built from the [blog post](https://www.pubnub.com/blog/multiplayer-game-in-go-lang-with-pubnub/?devrel_gh=Space-Race).
 
 [<img alt="PubNub usage in Space Race" align="center" src="https://i.imgur.com/ODdp1kY.png" height="150">](https://pubnub.com/multiplayer-gaming/?devrel_gh=Space-Race)
 
@@ -22,7 +22,11 @@ The fastest way to get started is to [download and run the appropriate binary fo
 
 ### Building From Source
 
-- Want to learn more about this project or build a clone from scratch? Check out the blog post (coming soon).
+- Want to learn more about this project or build a clone from scratch? Check out the [blog post](https://www.pubnub.com/blog/multiplayer-game-in-go-lang-with-pubnub/?devrel_gh=Space-Race).
+
+<a href="https://www.pubnub.com/blog/multiplayer-game-in-go-lang-with-pubnub/?devrel_gh=Space-Race">
+    <img alt="PubNub Blog" src="https://i.imgur.com/aJ927CO.png" width=260 height=98/>
+</a>
 
 - You’ll first need to sign up for a [PubNub account](https://dashboard.pubnub.com/signup/?devrel_gh=Space-Race). Once you sign up, you can get your unique PubNub keys from the [PubNub Developer Portal](https://admin.pubnub.com/?devrel_gh=Space-Race).
 
